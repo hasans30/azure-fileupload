@@ -1,25 +1,21 @@
-<h1>Image Resizer</h1>
+<h1>File uploader for whatsapp information processing</h1>
 
-<h2>Upload photos</h2>
+<h2>Upload english text file</h2>
 <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
   <div class="upload-container">
-    <label for="image">Select and image to upload: </label>
-    <input id="file-picker" type="file" name="image">
+    <label for="image">Select a file to upload: </label>
+    <input id="file-picker" type="file" accept=".txt" name="image" multiple>
   </div>
   <div>
-    <input type="submit" value="Upload Image">
+    <input type="submit" value="Upload File">
   </div>
 </form>
 
 <p id="message">{{message}}</p>
 
-<h2>Generated Thumbnails</h2>
-{{#each this.thumbnails}}
-  <img src="https://{{../accountName}}.blob.core.windows.net/{{../containerName}}/{{name}}">
-{{/each}}
 
 <hr>
-<p>This app has no official privacy policy. Your data will be uploaded to a service in order to produce a thumbnail. Your images will be public once you upload them and there is no automated way to remove them.</p>
+<p>This app has no official privacy policy. File uploaded will be accessed by owner of this site</p>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
@@ -32,7 +28,7 @@
       message.innerText = '';
 
       if(!picker.files.length) {
-        message.innerText = 'Please select an image to upload.';
+        message.innerText = 'Please select file(s) to upload.';
         e.preventDefault();
         return false;
       }

@@ -1,53 +1,51 @@
-if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').load();
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").load();
 }
 
-const
-      express = require('express')
-    , router = express.Router()
-
-    , multer = require('multer')
-    , inMemoryStorage = multer.memoryStorage()
-    , uploadStrategy = multer({ storage: inMemoryStorage }).single('image')
-
-    , { BlockBlobClient } = require('@azure/storage-blob')
-    , getStream = require('into-stream')
-    , containerName = 'images'
-;
+const express = require("express"),
+  router = express.Router(),
+  multer = require("multer"),
+  inMemoryStorage = multer.memoryStorage(),
+  uploadStrategy = multer({ storage: inMemoryStorage }).array("image"),
+  { BlobServiceClient } = require("@azure/storage-blob"),
+  getStream = require("into-stream");
 
 const handleError = (err, res) => {
-    res.status(500);
-    res.render('error', { error: err });
+  res.status(500);
+  res.render("error", { error: err });
 };
 
-const getBlobName = originalName => {
-    const identifier = Math.random().toString().replace(/0\./, ''); // remove "0." from start of string
-    return `${identifier}-${originalName}`;
+const getBlobName = (originalName) => {
+  return originalName;
 };
 
-router.post('/', uploadStrategy, (req, res) => {
+router.post("/", uploadStrategy, (req, res) => {
+  const files = req.files,
+    blobServiceClient = BlobServiceClient.fromConnectionString(
+      process.env.AZURE_STORAGE_CONNECTION_STRING
+    ),
+    containerName = process.env.AZURE_STORAGE_CONTAINER_NAME;
 
-    const
-          blobName = getBlobName(req.file.originalname)
-        , blobService = new BlockBlobClient(process.env.AZURE_STORAGE_CONNECTION_STRING,containerName,blobName)
-        , stream = getStream(req.file.buffer)
-        , streamLength = req.file.buffer.length
-    ;
+  for (let file of files) {
+    const blobName = getBlobName(file.originalname);
+    const blobClient = blobServiceClient.getContainerClient(containerName);
+    const stream = getStream(file.buffer);
+    const streamLength = file.buffer.streamLength;
 
-    blobService.uploadStream(stream, streamLength)
-    .then(
-        ()=>{
-            res.render('success', { 
-                message: 'File uploaded to Azure Blob storage.' 
-            });
-        }
-    ).catch(
-        (err)=>{
-        if(err) {
-            handleError(err);
-            return;
-        }
-    })
+    const blockBlobClient = blobClient.getBlockBlobClient(blobName);
+
+    blockBlobClient.uploadStream(stream, streamLength).catch((err) => {
+      if (err) {
+        console.log(err);
+        handleError(err);
+        return;
+      }
+    });
+  }
+  res.render("success", {
+    message:
+      "File uploaded to Azure Blob storage. File will be processed for Q&A",
+  });
 });
 
 module.exports = router;
